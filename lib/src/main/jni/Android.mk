@@ -1,10 +1,10 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_MODULE:= libandroid_spatialite
+LOCAL_MODULE:= libandroid_whu
 
 LOCAL_STATIC_LIBRARIES := \
-    spatialite
+    whu
 
 LOCAL_SRC_FILES:= \
     android_database_SQLiteCommon.cpp \
@@ -36,7 +36,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 NDK_MODULES_PATH := ndk-modules
 
-SPATIALITE_PATH := libspatialite-4.3.0a
+WHU_PATH := libwhu-4.3.0a
 PROJ4_PATH := proj-4.8.0
 GEOS_PATH := geos-3.4.2
 ICONV_PATH := libiconv-1.13
@@ -45,7 +45,7 @@ XML2_PATH := libxml2-2.9.2
 FREEXL_PATH := freexl-1.0.2
 
 include $(NDK_MODULES_PATH)/sqlite/sqlite.mk
-include $(NDK_MODULES_PATH)/libspatialite/$(SPATIALITE_PATH).mk
+include $(NDK_MODULES_PATH)/libwhu/$(WHU_PATH).mk
 include $(NDK_MODULES_PATH)/proj.4/$(PROJ4_PATH).mk
 include $(NDK_MODULES_PATH)/geos/$(GEOS_PATH).mk
 include $(NDK_MODULES_PATH)/libiconv/$(ICONV_PATH).mk
@@ -53,4 +53,4 @@ include $(NDK_MODULES_PATH)/liblzma/$(LZMA_PATH).mk
 include $(NDK_MODULES_PATH)/libxml2/$(XML2_PATH).mk
 include $(NDK_MODULES_PATH)/freexl/$(FREEXL_PATH).mk
 
-# NOTE: iconv is dependency of Spatialite virtual modules like VirtualText, VirtualShape, VirtualXL, etc.
+# NOTE: iconv is dependency of Whu virtual modules like VirtualText, VirtualShape, VirtualXL, etc.
