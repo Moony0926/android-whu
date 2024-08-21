@@ -1,136 +1,341 @@
-[![Release](https://jitpack.io/v/com.github.sevar83/android-spatialite.svg)](https://jitpack.io/v/com.github.sevar83/android-spatialite.svg)
 
-# android-spatialite 
 
-## WHAT IS THIS?
-- The [Spatialite](https://www.gaia-gis.it/gaia-sins/) database ported for *Android*
-- 100% offline, portable and self-contained as *SQLite*.
+<div style="text-align: center; font-size: 60px; font-weight: bold; font-style: italic; font-family: 'Courier New', Courier, monospace;">
+  WhuDatabase
+</div>
 
-## WHEN DO I NEED IT?
-- When you need deployment, collecting, processing and fast querying of small to huge amounts of geometry data (points, polylines, polygons, multipolygons, etc.) on Android devices.
-- When you want to be 100% independent from any server/cloud backend.
+## WhuDatabase是什么
 
-## GETTING STARTED
+可部署在Android的移动端时空向量数据库
+100%离线、可移植且独立于SQLite。
 
-If you know basic *SQLite*, there's almost nothing to learn. The API is 99% the same as the Android *SQLite* API (as of API level 15). The main difference is the packaging. Use `org.spatialite.database.XYZ` instead of `android.database.sqlite.XYZ` and `org.spatialite.XYZ` instead of `android.database.XYZ`. Same applies to the other classes - all platform `SQLiteXYZ` classes have their *Spatialite* versions.
 
-### Gradle
-1) Have this in your project's `build.gradle`:
+
+## 什么时候需要它？
+计划存储多种模态的向量并进行查询更新操作。
+在Android设备上部署、收集、处理和快速查询大量与时空相关的向量数据，已经大量由向量点生成的几何数据（点、折线、多边形、多多边形等）时。
+当大量数据集需要查询或插入更新数据集速度快时。
+
+
+
+## 入门
+代码行文方式与SQLite基本相同，继承SQL语句进行建表，插入数据，以及查询。
+
+#### 示例一
+
+向量数据的处理（插入、更新、删除）和查询，以向量长度为10的时候为例。
+
+**创建表和插入数据**
+
+```java
+// 创建表
+CREATE TABLE ten_dim_points (
+    id INTEGER PRIMARY KEY,
+    dim1 REAL,
+    dim2 REAL,
+    dim3 REAL,
+    dim4 REAL,
+    dim5 REAL,
+    dim6 REAL,
+    dim7 REAL,
+    dim8 REAL,
+    dim9 REAL,
+    dim10 REAL
+);
+
+// 插入数据
+
+面向海量数据插入时，面向GPU参与的移动端设备，开放GPU权限会使WhuDatabase调用批量数据插入算法，提高插入效率。
+面向海量数据插入时，面向CPU参与的移动端设备，WhuDatabase会采用多线程插入的方式并采取替罪羊策略自动化平衡索引。
+INSERT INTO ten_dim_points (dim1, dim2, dim3, dim4, dim5, dim6, dim7, dim8, dim9, dim10) 
+VALUES 
+(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0),
+(2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0),
+(3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0);
+
+
+// 更新数据 (更新 id 为 1 的记录，将 dim1 的值改为 10.0，将 dim2 的值改为 20.0)
+UPDATE ten_dim_points
+SET dim1 = 10.0, dim2 = 20.0
+WHERE id = 1;
+
+// 删除数据 (删除 id 为 2 的记录)
+DELETE FROM ten_dim_points
+WHERE id = 2;
+```
+**数据查询**
+
+查询所有数据
+
+```java
+SELECT * FROM ten_dim_points;
+```
+
+查询特定条件的数据
+
+```java
+SELECT * FROM ten_dim_points WHERE dim1 = 1.0 AND dim2 = 2.0;
+```
+
+范围查询
+面向海量查询时，WhuDatabase在所设计的索引上会训练小型自动化选择搜寻策略模型，选择最优的查询策略并并行处理提高查询效率。
+单次查询服从SQLite查询方法。
+
+```java
+SELECT * FROM ten_dim_points WHERE dim1 BETWEEN 1.0 AND 2.0 AND dim2 BETWEEN 2.0 AND 3.0;
+```
+
+k-最近邻
+
+面对k-最近邻查询，需自身定义查询的距离计算公式（如欧式距离），再进行查询。当面对小数据集时，采用遍历的方式寻找目标值。当面对大数据时，我们构建多叉平衡KD树改进查询效率。
+
+```java
+// 求距离(3, 3, 3, 3, 3, 3, 3, 3, 3, 3)最近的点
+WITH distances AS (
+    SELECT 
+        id, 
+        dim1, dim2, dim3, dim4, dim5, dim6, dim7, dim8, dim9, dim10,
+        SQRT(
+            (dim1 - 3.0) * (dim1 - 3.0) + 
+            (dim2 - 3.0) * (dim2 - 3.0) + 
+            (dim3 - 3.0) * (dim3 - 3.0) + 
+            (dim4 - 3.0) * (dim4 - 3.0) + 
+            (dim5 - 3.0) * (dim5 - 3.0) + 
+            (dim6 - 3.0) * (dim6 - 3.0) + 
+            (dim7 - 3.0) * (dim7 - 3.0) + 
+            (dim8 - 3.0) * (dim8 - 3.0) + 
+            (dim9 - 3.0) * (dim9 - 3.0) + 
+            (dim10 - 3.0) * (dim10 - 3.0)
+        ) AS distance
+    FROM 
+        ten_dim_points
+)
+SELECT 
+    id, 
+    dim1, dim2, dim3, dim4, dim5, dim6, dim7, dim8, dim9, dim10, 
+    distance
+FROM 
+    distances
+ORDER BY 
+    distance
+LIMIT 2; // 返回最近的两个点
 
 ```
-allprojects {
-  repositories {
-    ...
-    maven { url "https://jitpack.io" }
-  }
-}
+聚类分析，基于 dim1 和 dim2 的分组和聚合来分析不同的簇
+
+```java
+// 假设每10个单位为一个簇
+SELECT
+    CAST(dim1 / 10 AS INTEGER) * 10 AS x_cluster,
+    CAST(dim2 / 10 AS INTEGER) * 10 AS y_cluster,
+    COUNT(*) AS count
+FROM ten_dim_points
+GROUP BY x_cluster, y_cluster;
+```
+自定义排序
+
+```java
+// dim1 升序，dim2 降序排序
+SELECT *
+FROM ten_dim_points
+ORDER BY dim1 ASC, dim2 DESC;
 ```
 
-2) Add the following to your module's `build.gradle`:
+#### 示例二
+多维向量的处理与计算，以三维向量为例。
+
+**创建表和插入数据**
+
+```java
+// 创建表格
+CREATE TABLE vectors (
+    id INTEGER PRIMARY KEY,
+    x REAL,
+    y REAL,
+    z REAL
+);
+
+// 插入数据
+INSERT INTO vectors (x, y, z) VALUES 
+(1.0, 2.0, 3.0),
+(4.0, 5.0, 6.0),
+(7.0, 8.0, 9.0);
 ```
-implementation 'com.github.sevar83:android-spatialite:<LATEST_VERSION>'
+**查询向量数据**
+
+```java
+// 查询所有向量
+SELECT * FROM vectors;
+
+// 查询特定条件的向量
+SELECT * FROM vectors WHERE x > 4;
+```
+**计算**
+
+计算向量的模（长度）
+
+```java
+SELECT id, SQRT(x*x + y*y + z*z) AS magnitude FROM vectors;
+```
+计算两个向量点积（假设有两个与vectors定义相同的向量表vector1和vector2）
+
+```java
+SELECT v1.id, 
+       (v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) AS dot_product
+FROM vectors1 v1
+JOIN vectors2 v2 ON v1.id = v2.id;
+```
+计算向量距离（欧几里得距离），继续使用vector1和vector2
+
+```java
+SELECT v1.id, 
+       SQRT((v1.x - v2.x) * (v1.x - v2.x) + 
+            (v1.y - v2.y) * (v1.y - v2.y) + 
+            (v1.z - v2.z) * (v1.z - v2.z)) AS euclidean_distance
+FROM vectors1 v1
+JOIN vectors2 v2 ON v1.id = v2.id;
 ```
 
-## EXAMPLE CODE
-There is a very simple and useless example in the `app` module. Another example is the [SpatiAtlas](https://github.com/sevar83/SpatiAtlas) experiment.
+#### 示例三
 
-## HOW IT WORKS?
-Works the same way as the platform *SQLite*. It's accessible through `Java/JNI` wrappers around the *Spatialite* C library. 
-The *Spatialite* wrappers were derived and adapted from the platform *SQLite* wrappers (the standard Android SQLite API).
+json格式数据的插入与更新。
 
-## Other FAQ
+**创建表和插入数据**
 
-### What is *Spatialite*?
-Simply: *Spatialite* = *SQLite* + advanced geospatial support.<br>
-*Spatialite* is a geospatial extension to *SQLite*. It is a set of few libraries written in C to extend *SQLite* with geometry data types and many [SQL functions](http://www.gaia-gis.it/gaia-sins/spatialite-sql-4.3.0.html) above geometry data. For more info: https://www.gaia-gis.it/gaia-sins/
+```java
+// 创建表格
+CREATE TABLE my_table (
+    id INTEGER PRIMARY KEY,
+    data TEXT
+);
 
-### Is there a list of all supported Spatialite functions?
-Yes - http://www.gaia-gis.it/gaia-sins/spatialite-sql-4.4.0.html
+// 插入数据
+INSERT INTO my_table (data) VALUES ('{"name": "John", "age": 30}');
 
-### Does it use JDBC?
-No. It uses cursors - the suggested lightweight approach to access SQL used in the Android platform instead of the heavier JDBC.
+// 更新数据 (将 id 为1的 age 字段更新为31)
+UPDATE my_table
+SET data = json_set(data, '$.age', 31)
+WHERE id = 1;
 
-### 64-bit architectures supported?
-
-Yes. It builds for `arm64-v8a` and `x86_64`. `mips64` is not tested.
-
-### Reducing the APK size. 
-
-This library is distributed as multi-architecture AAR file. 
-By default Gradle will produce a universal APK including the native .so libraries compiled for all supported CPU architectures. Usually that's unacceptable for large libraries like this.
-But that's easily fixed by using Gradle's "ABI splits" feature. The following gradle code will produce a separate APK per each architecture. The APK size is reduced few times.
-```
-android {
-    splits {
-        abi {
-            enable true
-                reset()
-                include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
-            }
-        }
-    }
-}
+// 删除数据 (删除 id 为1的 age 字段)
+UPDATE my_table
+SET data = json_remove(data, '$.age')
+WHERE id = 1;
 ```
 
-### What libraries are packaged currently?
+#### 示例四
+数据的统计与聚合，以商品的售价为例。
 
-- SQLite 3.15.1
-- Spatialite 4.3.0a
-- GEOS 3.4.2
-- Proj4 4.8.0
-- lzma 5.2.1
-- iconv 1.13
-- xml2 2.9.2
-- freexl 1.0.2
+**创建表和插入数据**
 
-## REQUIREMENTS
-Min SDK 16
+```java
+// 创建表格
+CREATE TABLE sales (
+    id INTEGER PRIMARY KEY,
+    product_id INTEGER,
+    amount REAL
+);
 
-## MIGRATION TO 2.0+
+// 插入数据
+INSERT INTO sales (product_id, amount) VALUES 
+(1, 100.0),
+(2, 150.0),
+(1, 200.0),
+(2, 250.0),
+(1, 300.0);
+```
+**数据处理并返回**
 
-1. Remove calls to `SQLiteDatabase.loadLibs()`. Now it is automatically done.
-2. Replace all occasions of `import org.spatialite.Cursor;` with `import android.database.Cursor;`
-3. Replace all occasions of `import org.spatialite.database.SQLite***Exception;` with `import android.database.sqlite.SQLite***Exception;`
+```java
+SELECT 
+    product_id, 
+    COUNT(*) AS sales_count, 
+    SUM(amount) AS total_sales, 
+    AVG(amount) AS average_sales
+FROM 
+    sales
+GROUP BY 
+    product_id;
+```
 
-## CHANGES
+#### 示例五
+面向时空短向量生成的几何对象的查询和处理，WhuDatabase数据库支持自定义的查询。
 
-### 2.0.1
-- Migrated to AndroidX
-- Fixed native crash [#4](https://github.com/sevar83/android-spatialite/issues/4)
+**创建表和插入数据**
 
-### 2.0.0
-- Now using the [Requery.io SQLite wrapper](https://github.com/requery/sqlite-android/) instead of SQLCipher's. This results to:
-- Android Nougat (25+) supported. The native code no more links to private NDK libraries exception and warning messages similar to `UnsatisfiedLinkError: dlopen failed: library "libandroid_runtime.so" not found` should be no more. For more details: https://developer.android.com/about/versions/nougat/android-7.0-changes.html#ndk;
-- Much cleaner codebase derived from a much newer and more mature AOSP SQLite wrapper snapshot;
-- Now possible to build with the latest NDK (tested on R14);
-- Switched to CLang as the default NDK toolchain;
-- 64-bit build targets (arm64-v8a, x86_64);
-- `SQLiteDatabase.loadLibs()` initialization call is not required anymore;
-- Removed `org.spatialite.Cursor` interface. Used 'android.database.sqlite.Cursor' instead.
-- Removed the `SQLiteXyzException` classes. Their AOSP originals are used instead;
-- Dropped support for Android localized collation. SQL statements with "COLLATE LOCALIZED" will cause error. This is necessary to reduce the library size and ensure N compatibility;
-- Updated SQLite to 3.15.1;
-- Updated lzma to 5.2.1;
-- Updated FreeXL to 1.0.2;
+```java
+// 创建表格
+CREATE TABLE places (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    geom GEOMETRY
+);
 
-## CREDITS
-The main ideas used here were borrowed from:
-- https://github.com/requery/sqlite-android
-- https://github.com/sqlcipher/android-database-sqlcipher
-- https://github.com/illarionov/android-sqlcipher-spatialite
+// 插入点数据
+INSERT INTO places (name, geom) VALUES ('Place A', GeomFromText('POINT(1 1)', 4326));
+INSERT INTO places (name, geom) VALUES ('Place B', GeomFromText('POINT(2 2)', 4326));
 
-## SUPPORT
+// 插入线数据
+INSERT INTO places (name, geom) VALUES ('Line A', GeomFromText('LINESTRING(0 0, 2 2)', 4326));
+INSERT INTO places (name, geom) VALUES ('Line B', GeomFromText('LINESTRING(0 2, 2 0)', 4326));
 
-If you like this library, please consider...
+// 插入多边形数据
+INSERT INTO places (name, geom) VALUES ('Polygon A', GeomFromText('POLYGON((0 0, 0 3, 3 3, 3 0, 0 0))', 4326));
+```
+**基本查询**
 
-<a href="https://www.buymeacoffee.com/5Gds924" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+查询所有数据并显示几何对象的文本表示
+```java
+SELECT id, name, AsText(geom) FROM places;
+```
+**空间查询**
 
-## KNOWN PROJECTS USING THIS LIBRARY
+查询包含特定点的几何对象
+```java
+SELECT name FROM places WHERE Contains(geom, GeomFromText('POINT(1 1)', 4326));
+```
+查询相交的几何对象
 
-- [GeoWorld](https://play.google.com/store/apps/details?id=com.buildware.geocoord)
-- [GeoWorld PRO](https://play.google.com/store/apps/details?id=com.buildware.geoworld)
-- [Hema Explorer](https://play.google.com/store/apps/details?id=au.com.hemamaps.explorer)
-- [RadioCells.org Android Client](https://github.com/openbmap/radiocells-scanner-android)
+```java
+// 两条线是否相交
+SELECT Intersects(
+    (SELECT geom FROM places WHERE name = 'Line A'),
+    (SELECT geom FROM places WHERE name = 'Line B')
+) AS do_intersect;
 
-## LICENSE
-Apache License 2.0
+// 与一条线相交的几何对象
+SELECT name FROM places WHERE Intersects(geom, GeomFromText('LINESTRING(0 0, 2 2)', 4326));
+```
+
+查询距离
+
+```java
+// 两点之间的距离
+SELECT Distance(
+    (SELECT geom FROM places WHERE name = 'Place A'),
+    (SELECT geom FROM places WHERE name = 'Place B')
+) AS distance;
+
+// 距离特定点一定范围内的几何对象
+SELECT name FROM places WHERE Distance(geom, GeomFromText('POINT(1 1)', 4326)) < 2.0;
+```
+**几何操作**
+
+旨在加快时空数据的搜索效率，服务于数据分析和机器学习模型训练。
+
+```java
+SELECT id, name, AsText(Buffer(geom, 1.0)) AS buffered_geom FROM places;
+```
+计算几何对象的凸包
+
+```java
+SELECT id, name, AsText(ConvexHull(geom)) AS convex_hull_geom FROM places;
+```
+
+
+## 其他常见问题
+
+### 什么是 WhuDatabase？
+简单来说：WhuDatabase= 查询效率改进的SQLite + 高效大规模的向量搜索引擎 + 高级地理空间支持。
+### 它使用 JDBC 吗？
+否，它使用cursors - 建议使用轻量级方法来访问 Android 平台中使用的 SQL，而不是更重的 JDBC。
