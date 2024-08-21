@@ -407,7 +407,7 @@ int register_android_database_CursorWindow(JNIEnv* env)
 
     gEmptyString = static_cast<jstring>(env->NewGlobalRef(env->NewStringUTF("")));
     return jniRegisterNativeMethods(env,
-    "org/spatialite/CursorWindow", sMethods, NELEM(sMethods));
+    "org/whu/CursorWindow", sMethods, NELEM(sMethods));
 }
 
 } // namespace android

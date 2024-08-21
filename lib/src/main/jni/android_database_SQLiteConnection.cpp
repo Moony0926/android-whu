@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include <spatialite.h>
+#include <whu.h>
 
 // Set to 1 to use UTF16 storage for localized indexes.
 #define UTF16_STORAGE 0
@@ -79,12 +79,12 @@ struct SQLiteConnection {
     const int openFlags;
     std::string path;
     std::string label;
-    const void* spatialiteCache;
+    const void* whuCache;
 
     volatile bool canceled;
 
-    SQLiteConnection(sqlite3* db, int openFlags, const std::string& path, const std::string& label, const void* spatialiteCache) :
-        db(db), openFlags(openFlags), path(path), label(label), canceled(false), spatialiteCache(spatialiteCache) { }
+    SQLiteConnection(sqlite3* db, int openFlags, const std::string& path, const std::string& label, const void* whuCache) :
+        db(db), openFlags(openFlags), path(path), label(label), canceled(false), whuCache(whuCache) { }
 };
 
 // Called each time a statement begins execution, when tracing is enabled.
@@ -189,13 +189,13 @@ static jlong nativeOpen(JNIEnv* env, jclass clazz, jstring pathStr, jint openFla
     }
 #endif
 
-    // Required to make Spatialite register its special ImportXXX() functions
-    //setenv("SPATIALITE_SECURITY", "relaxed", 1);
-    void *spatialiteCache = spatialite_alloc_connection();
-    spatialite_init_ex(db, spatialiteCache, 0);
+    // Required to make Whu register its special ImportXXX() functions
+    //setenv("WHU_SECURITY", "relaxed", 1);
+    void *whuCache = whu_alloc_connection();
+    whu_init_ex(db, whuCache, 0);
 
     // Create wrapper object.
-    SQLiteConnection* connection = new SQLiteConnection(db, openFlags, path, label, spatialiteCache);
+    SQLiteConnection* connection = new SQLiteConnection(db, openFlags, path, label, whuCache);
 
     // Enable tracing and profiling if requested.
     if (enableTrace) {
@@ -215,7 +215,7 @@ static void nativeClose(JNIEnv* env, jclass clazz, jlong connectionPtr) {
     if (connection) {
         ALOGV("Closing connection %p", connection->db);
 
-        spatialite_cleanup_ex(connection->spatialiteCache);
+        whu_cleanup_ex(connection->whuCache);
 
         int err = sqlite3_close(connection->db);
         if (err != SQLITE_OK) {
@@ -873,7 +873,7 @@ static JNINativeMethod sMethods[] =
             (void*)nativeOpen },
     { "nativeClose", "(J)V",
             (void*)nativeClose },
-    { "nativeRegisterCustomFunction", "(JLorg/spatialite/database/SQLiteCustomFunction;)V",
+    { "nativeRegisterCustomFunction", "(JLorg/whu/database/SQLiteCustomFunction;)V",
             (void*)nativeRegisterCustomFunction },
     { "nativeRegisterLocalizedCollators", "(JLjava/lang/String;)V",
             (void*)nativeRegisterLocalizedCollators },
@@ -930,7 +930,7 @@ static JNINativeMethod sMethods[] =
 int register_android_database_SQLiteConnection(JNIEnv *env)
 {
     jclass clazz;
-    FIND_CLASS(clazz, "org/spatialite/database/SQLiteCustomFunction");
+    FIND_CLASS(clazz, "org/whu/database/SQLiteCustomFunction");
 
     GET_FIELD_ID(gSQLiteCustomFunctionClassInfo.name, clazz,
             "name", "Ljava/lang/String;");
@@ -943,7 +943,7 @@ int register_android_database_SQLiteConnection(JNIEnv *env)
     gStringClassInfo.clazz = jclass(env->NewGlobalRef(clazz));
 
     return jniRegisterNativeMethods(env, 
-        "org/spatialite/database/SQLiteConnection",
+        "org/whu/database/SQLiteConnection",
         sMethods, NELEM(sMethods)
     );
 }

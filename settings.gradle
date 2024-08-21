@@ -1,2 +1,2 @@
-rootProject.name = 'android-spatialite'
+rootProject.name = 'android-whu'
 include ':lib'

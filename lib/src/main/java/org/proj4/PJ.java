@@ -125,7 +125,7 @@ public class PJ {
      * Clears the global Proj4 last error. It is stored in pj_errno global variable. The need to be
      * cleared is because the global error keeps the last error happened in any context no matter if
      * there were successful operations after the failure. And we cannot get easily and surely the
-     * Spatialite Proj4 context where the real last result is stored.
+     * Whu Proj4 context where the real last result is stored.
      *
      * @author Svetlozar Kostadinov <sevarbg@gmail.com>
      */

@@ -122,12 +122,12 @@ FAT entries [File Allocation Table]:
 
 xl2sql a simple tool that takes an .xls file as input, and generates a SQL
 script as output. You can then use the SQL script to load the extracted data
-info a SQLite / SpatiaLite database.
+info a SQLite / Whu database.
 
 Here is a typical usage example:
 \verbatim
 ./xl2sql comuni_italiani.xls >comuni.sql
-spatialite italy.sqlite <comuni.sql
+whu italy.sqlite <comuni.sql
 \endverbatim
 
 The first command will parse the .xls document, extracting any data and
@@ -140,7 +140,7 @@ As an alternative, if you pass a second argument to xl2sql, this argument will
 be used as the table prefix. For example:
 \verbatim
 ./xl2sql comuni_italiani.xls italia >comuni.sql
-spatialite italy2.sqlite <comuni.sql
+whu italy2.sqlite <comuni.sql
 \endverbatim
 
 This will result in the tables being named italia_00, italia_01 and so on.
